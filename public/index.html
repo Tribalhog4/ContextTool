@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BD Linkage Analyzer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --surface2: #f4f3ef;
+    --border: #e5e4de;
+    --border2: #d0cfc8;
+    --text: #1a1a18;
+    --text2: #6b6a64;
+    --text3: #9b9a94;
+    --accent: #1a1a18;
+    --accent-text: #ffffff;
+    --green-bg: #edf7ed;
+    --green-text: #2d6a2d;
+    --amber-bg: #fef9ec;
+    --amber-text: #7a5c00;
+    --red-bg: #fdf0f0;
+    --red-text: #8b2020;
+    --blue-bg: #eef4fd;
+    --blue-text: #1a4a8a;
+    --radius: 8px;
+    --radius-lg: 12px;
+    font-size: 15px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-logo {
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+
+  .header-sep { color: var(--border2); }
+
+  .header-sub {
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .api-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 10px;
+    height: 34px;
+  }
+
+  .api-input-wrap label {
+    font-size: 12px;
+    color: var(--text2);
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  .api-input-wrap input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-family: monospace;
+    color: var(--text);
+    outline: none;
+    width: 240px;
+  }
+
+  .api-status {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .api-status.valid { background: #4caf50; }
+  .api-status.invalid { background: #e53935; }
+
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .prospect-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .prospect-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .label-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text3);
+    margin-bottom: 4px;
+  }
+
+  .prospect-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .prospect-desc {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    line-height: 1;
+    height: 34px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-text);
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border2);
+  }
+  .btn-secondary:hover { background: var(--surface2); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border-color: var(--border);
+    font-size: 12px;
+    height: 28px;
+    padding: 4px 10px;
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+  .controls-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  select {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+  }
+  select:focus { border-color: var(--text); }
+
+  input[type="text"] {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--text); }
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.6;
+  }
+  textarea:focus { border-color: var(--text); }
+
+  .progress-track {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-track.visible { display: block; }
+  .progress-fill {
+    height: 100%;
+    background: var(--text);
+    border-radius: 1px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 16px;
+    min-width: 90px;
+  }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; margin-bottom: 2px; }
+  .stat-val { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-row input { flex: 1; min-width: 160px; }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 13px;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg); }
+
+  .col-name { width: 18%; }
+  .col-bullets { width: 54%; }
+  .col-status { width: 10%; }
+  .col-actions { width: 18%; }
+
+  .company-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .company-org { font-size: 11px; color: var(--text3); }
+
+  .bullets { list-style: none; }
+  .bullets li {
+    padding-left: 14px;
+    position: relative;
+    margin-bottom: 6px;
+    line-height: 1.55;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .bullets li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: var(--text3);
+  }
+  .bullets li:last-child { margin-bottom: 0; }
+
+  .placeholder-text { color: var(--text3); font-size: 13px; }
+  .loading-text { color: var(--text2); font-size: 13px; font-style: italic; }
+  .error-text { color: var(--red-text); font-size: 13px; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-pending { background: var(--surface2); color: var(--text3); }
+  .badge-loading { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-done { background: var(--green-bg); color: var(--green-text); }
+  .badge-error { background: var(--red-bg); color: var(--red-text); }
+  .badge-skip { background: var(--amber-bg); color: var(--amber-text); }
+
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text2);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    margin-right: 4px;
+    height: 26px;
+  }
+  .action-btn:hover { background: var(--surface2); color: var(--text); }
+
+  .empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--text3);
+    font-size: 14px;
+  }
+
+  /* Edit prospect modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    width: 560px;
+    max-width: calc(100vw - 2rem);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+  }
+
+  .form-row { margin-bottom: 1rem; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 4px; display: block; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; }
+
+  .toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--text);
+    color: var(--accent-text);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 300;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 700px) {
+    .col-name { width: 25%; }
+    .col-bullets { width: 75%; }
+    .col-status, .col-actions { display: none; }
+    .header { padding: 0 1rem; }
+    .main { padding: 1rem; }
+    .api-input-wrap input { width: 160px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <span class="header-logo">BD Linkage Analyzer</span>
+  <span class="header-sep">·</span>
+  <span class="header-sub">Bowen Energy Practice</span>
+  <div class="header-right">
+    <div class="api-input-wrap">
+      <label for="apiKeyInput">API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+      <span class="api-status" id="apiStatus"></span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Prospect panel -->
+  <div class="prospect-card">
+    <div class="prospect-card-header">
+      <div style="flex:1">
+        <div class="label-tag">Prospect (shown anonymously in outreach)</div>
+        <div class="prospect-name" id="dispProspectName">CleanConnect.ai</div>
+        <div class="prospect-desc" id="dispProspectDesc">AI-powered monitoring and operational intelligence for oil &amp; gas infrastructure. Products include: autonomous site monitoring (gas/liquid leak detection, flare monitoring, hard hat &amp; fire detection via computer vision), digital twin visualization (Minerva), and blockchain-based emissions tokenization (ProveZero). Core value props: EPA-certified emissions monitoring, real-time sensor-to-insight pipeline, and converting verified emissions data into tradeable carbon units. Customers are upstream/midstream oil &amp; gas operators seeking to reduce venting/flaring, prove emissions compliance, and monetize clean operations.</div>
+      </div>
+      <button class="btn btn-ghost" onclick="openEditModal()">Edit prospect</button>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-row">
+    <select id="batchSel">
+      <option value="10">Run 10 companies</option>
+      <option value="25">Run 25 companies</option>
+      <option value="50">Run 50 companies</option>
+      <option value="136">Run all 136</option>
+    </select>
+    <button class="btn btn-primary" id="runBtn" onclick="runBatch()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+      Generate linkages
+    </button>
+    <button class="btn btn-secondary" onclick="exportCSV()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </button>
+    <button class="btn btn-secondary" onclick="clearAll()">Clear all</button>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-track" id="progressTrack">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow" style="display:none">
+    <div class="stat"><div class="stat-label">Total</div><div class="stat-val">136</div></div>
+    <div class="stat"><div class="stat-label">Done</div><div class="stat-val" id="statDone">0</div></div>
+    <div class="stat"><div class="stat-label">Errors</div><div class="stat-val" id="statErrors">0</div></div>
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-val" id="statRemaining">136</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-row">
+    <input type="text" id="filterInput" placeholder="Filter by company name..." oninput="renderTable()">
+    <select id="filterStatus" onchange="renderTable()">
+      <option value="all">All statuses</option>
+      <option value="done">Done</option>
+      <option value="pending">Pending</option>
+      <option value="error">Errors</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-name">Company</th>
+          <th class="col-bullets">Linkage bullets</th>
+          <th class="col-status">Status</th>
+          <th class="col-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<!-- Edit prospect modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <div class="modal-title">Edit prospect</div>
+    <div class="form-row">
+      <label class="form-label" for="editName">Name</label>
+      <input type="text" id="editName" placeholder="Company name">
+    </div>
+    <div class="form-row">
+      <label class="form-label" for="editDesc">Description</label>
+      <textarea id="editDesc" rows="6" placeholder="Describe the prospect's products, customers, and key capabilities..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProspect()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="companies.js"></script>
+<script>
+  let prospect = {
+    name: 'CleanConnect.ai',
+    desc: 'AI-powered monitoring and operational intelligence for oil & gas infrastructure. Products include: autonomous site monitoring (gas/liquid leak detection, flare monitoring, hard hat & fire detection via computer vision), digital twin visualization (Minerva), and blockchain-based emissions tokenization (ProveZero). Core value props: EPA-certified emissions monitoring, real-time sensor-to-insight pipeline, and converting verified emissions data into tradeable carbon units. Customers are upstream/midstream oil & gas operators seeking to reduce venting/flaring, prove emissions compliance, and monetize clean operations.'
+  };
+
+  let results = {};
+  let running = false;
+
+  // API key validation
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const apiStatus = document.getElementById('apiStatus');
+
+  // Restore key from sessionStorage
+  const savedKey = sessionStorage.getItem('bd_api_key');
+  if (savedKey) { apiKeyInput.value = savedKey; updateApiStatus(savedKey); }
+
+  apiKeyInput.addEventListener('input', () => {
+    const k = apiKeyInput.value.trim();
+    sessionStorage.setItem('bd_api_key', k);
+    updateApiStatus(k);
+  });
+
+  function updateApiStatus(k) {
+    apiStatus.className = 'api-status' + (k.startsWith('sk-ant-') && k.length > 20 ? ' valid' : k.length > 0 ? ' invalid' : '');
+  }
+
+  function getApiKey() { return apiKeyInput.value.trim(); }
+
+  // Modal
+  function openEditModal() {
+    document.getElementById('editName').value = prospect.name;
+    document.getElementById('editDesc').value = prospect.desc;
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+  function closeModalOnBg(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+  function saveProspect() {
+    const name = document.getElementById('editName').value.trim();
+    const desc = document.getElementById('editDesc').value.trim();
+    if (!name || !desc) { showToast('Please fill in both fields.'); return; }
+    prospect = { name, desc };
+    document.getElementById('dispProspectName').textContent = name;
+    document.getElementById('dispProspectDesc').textContent = desc;
+    closeModal();
+    showToast('Prospect updated. Re-run to refresh linkages.');
+  }
+
+  // Toast
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // Stats
+  function updateStats() {
+    const done = Object.values(results).filter(r => r.status === 'done').length;
+    const errors = Object.values(results).filter(r => r.status === 'error').length;
+    document.getElementById('statDone').textContent = done;
+    document.getElementById('statErrors').textContent = errors;
+    document.getElementById('statRemaining').textContent = 136 - done;
+    document.getElementById('statsRow').style.display = 'flex';
+  }
+
+  // Render table
+  function renderTable() {
+    const filter = document.getElementById('filterInput').value.toLowerCase();
+    const statusFilter = document.getElementById('filterStatus').value;
+    const tbody = document.getElementById('tableBody');
+
+    const filtered = COMPANIES.filter(c => {
+      const nameMatch = c.Name.toLowerCase().includes(filter);
+      const status = results[c.Name]?.status || 'pending';
+      const statusMatch = statusFilter === 'all' || status === statusFilter;
+      return nameMatch && statusMatch;
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No companies match your filter.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(c => {
+      const r = results[c.Name];
+      const status = r?.status || 'pending';
+      const org = c.Organizations.replace(/<[^>]+>/g, '').trim();
+
+      let bulletsHtml;
+      if (r?.bullets?.length) {
+        bulletsHtml = '<ul class="bullets">' + r.bullets.map(b => `<li>${escHtml(b)}</li>`).join('') + '</ul>';
+      } else if (status === 'loading') {
+        bulletsHtml = '<span class="loading-text">Generating...</span>';
+      } else if (status === 'error') {
+        bulletsHtml = `<span class="error-text">${escHtml(r.errorMsg || 'Error — click retry')}</span>`;
+      } else if (status === 'skip') {
+        bulletsHtml = '<span class="placeholder-text">No description — skipped</span>';
+      } else {
+        bulletsHtml = '<span class="placeholder-text">—</span>';
+      }
+
+      const badgeMap = { pending: 'badge-pending', loading: 'badge-loading', done: 'badge-done', error: 'badge-error', skip: 'badge-skip' };
+      const nameSafe = c.Name.replace(/'/g, "\\'");
+
+      const actions = status === 'done'
+        ? `<button class="action-btn" onclick="rerun('${nameSafe}')">↺ Redo</button><button class="action-btn" onclick="copyBullets('${nameSafe}')">⎘ Copy</button>`
+        : status === 'error'
+        ? `<button class="action-btn" onclick="rerun('${nameSafe}')">↺ Retry</button>`
+        : '';
+
+      return `<tr>
+        <td class="col-name"><div class="company-name">${escHtml(c.Name)}</div><div class="company-org">${escHtml(org)}</div></td>
+        <td class="col-bullets">${bulletsHtml}</td>
+        <td class="col-status"><span class="badge ${badgeMap[status] || 'badge-pending'}">${status}</span></td>
+        <td class="col-actions">${actions}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // API call
+  async function getLinkage(company) {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error('No API key');
+    const desc = company['Description [Organization]'];
+    if (!desc || desc.trim().length < 20) {
+      return null; // skip
+    }
+    const res = await fetch('/api/linkage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+      body: JSON.stringify({
+        prospectName: prospect.name,
+        prospectDesc: prospect.desc,
+        companyName: company.Name,
+        companyDesc: desc
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data.bullets;
+  }
+
+  async function rerun(name) {
+    const company = COMPANIES.find(c => c.Name === name);
+    if (!company) return;
+    if (!getApiKey()) { showToast('Enter your API key first.'); return; }
+    results[name] = { status: 'loading' };
+    renderTable();
+    try {
+      const bullets = await getLinkage(company);
+      if (bullets === null) {
+        results[name] = { status: 'skip' };
+      } else {
+        results[name] = { status: 'done', bullets };
+      }
+    } catch(e) {
+      results[name] = { status: 'error', errorMsg: e.message };
+    }
+    updateStats();
+    renderTable();
+  }
+
+  function copyBullets(name) {
+    const r = results[name];
+    if (!r?.bullets) return;
+    const text = r.bullets.map(b => '• ' + b).join('\n');
+    navigator.clipboard.writeText(text).then(() => showToast('Bullets copied!'));
+  }
+
+  async function runBatch() {
+    if (running) return;
+    const apiKey = getApiKey();
+    if (!apiKey) { showToast('Enter your Anthropic API key first.'); apiKeyInput.focus(); return; }
+
+    const count = document.getElementById('batchSel').value;
+    const toRun = COMPANIES.filter(c => !results[c.Name] || results[c.Name].status === 'error').slice(0, count === '136' ? 136 : parseInt(count));
+    if (!toRun.length) { showToast('All selected companies already processed.'); return; }
+
+    running = true;
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('progressTrack').classList.add('visible');
+
+    let completed = 0;
+    const total = toRun.length;
+    const CONCURRENCY = 3;
+    let idx = 0;
+
+    async function worker() {
+      while (idx < toRun.length) {
+        const company = toRun[idx++];
+        results[company.Name] = { status: 'loading' };
+        renderTable();
+        try {
+          const bullets = await getLinkage(company);
+          if (bullets === null) {
+            results[company.Name] = { status: 'skip' };
+          } else {
+            results[company.Name] = { status: 'done', bullets };
+          }
+        } catch(e) {
+          results[company.Name] = { status: 'error', errorMsg: e.message };
+        }
+        completed++;
+        document.getElementById('progressFill').style.width = Math.round(completed / total * 100) + '%';
+        updateStats();
+        renderTable();
+      }
+    }
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+    running = false;
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('progressTrack').classList.remove('visible');
+    document.getElementById('progressFill').style.width = '0%';
+    showToast(`Done — ${Object.values(results).filter(r => r.status === 'done').length} companies processed.`);
+  }
+
+  function clearAll() {
+    if (!confirm('Clear all generated linkages?')) return;
+    results = {};
+    updateStats();
+    renderTable();
+  }
+
+  function exportCSV() {
+    const rows = [['Company', 'Organization', 'Bullet 1', 'Bullet 2', 'Bullet 3', 'Status']];
+    COMPANIES.forEach(c => {
+      const r = results[c.Name];
+      const bullets = r?.bullets || [];
+      rows.push([c.Name, c.Organizations, bullets[0] || '', bullets[1] || '', bullets[2] || '', r?.status || 'pending']);
+    });
+    const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'bd_linkages.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV exported.');
+  }
+
+  // Init
+  renderTable();
+</script>
+</body>
+</html>
