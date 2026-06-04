@@ -441,6 +441,34 @@
   }
   .toast.show { opacity: 1; transform: translateY(0); }
 
+  .upload-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-btn input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .list-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 34px;
+    padding: 0 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  .list-badge strong { color: var(--text); }
+
   @media (max-width: 700px) {
     .col-name { width: 25%; }
     .col-bullets { width: 75%; }
@@ -482,12 +510,7 @@
 
   <!-- Controls -->
   <div class="controls-row">
-    <select id="batchSel">
-      <option value="10">Run 10 companies</option>
-      <option value="25">Run 25 companies</option>
-      <option value="50">Run 50 companies</option>
-      <option value="136">Run all 136</option>
-    </select>
+    <select id="batchSel"></select>
     <button class="btn btn-primary" id="runBtn" onclick="runBatch()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
       Generate linkages
@@ -497,6 +520,12 @@
       Export CSV
     </button>
     <button class="btn btn-secondary" onclick="clearAll()">Clear all</button>
+    <button class="btn btn-secondary upload-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload list
+      <input type="file" accept=".csv" onchange="handleCSVUpload(event)">
+    </button>
+    <span class="list-badge" id="listBadge"></span>
   </div>
 
   <!-- Progress -->
@@ -506,10 +535,10 @@
 
   <!-- Stats -->
   <div class="stats-row" id="statsRow" style="display:none">
-    <div class="stat"><div class="stat-label">Total</div><div class="stat-val">136</div></div>
+    <div class="stat"><div class="stat-label">Total</div><div class="stat-val" id="statTotal">0</div></div>
     <div class="stat"><div class="stat-label">Done</div><div class="stat-val" id="statDone">0</div></div>
     <div class="stat"><div class="stat-label">Errors</div><div class="stat-val" id="statErrors">0</div></div>
-    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-val" id="statRemaining">136</div></div>
+    <div class="stat"><div class="stat-label">Remaining</div><div class="stat-val" id="statRemaining">0</div></div>
   </div>
 
   <!-- Filters -->
@@ -563,6 +592,9 @@
 
 <script src="companies.js"></script>
 <script>
+  let companies = typeof COMPANIES !== 'undefined' ? COMPANIES : [];
+  let listName = 'Default list';
+
   let prospect = {
     name: 'CleanConnect.ai',
     desc: 'AI-powered monitoring and operational intelligence for oil & gas infrastructure. Products include: autonomous site monitoring (gas/liquid leak detection, flare monitoring, hard hat & fire detection via computer vision), digital twin visualization (Minerva), and blockchain-based emissions tokenization (ProveZero). Core value props: EPA-certified emissions monitoring, real-time sensor-to-insight pipeline, and converting verified emissions data into tradeable carbon units. Customers are upstream/midstream oil & gas operators seeking to reduce venting/flaring, prove emissions compliance, and monetize clean operations.'
@@ -575,7 +607,6 @@
   const apiKeyInput = document.getElementById('apiKeyInput');
   const apiStatus = document.getElementById('apiStatus');
 
-  // Restore key from sessionStorage
   const savedKey = sessionStorage.getItem('bd_api_key');
   if (savedKey) { apiKeyInput.value = savedKey; updateApiStatus(savedKey); }
 
@@ -590,6 +621,80 @@
   }
 
   function getApiKey() { return apiKeyInput.value.trim(); }
+
+  // CSV parser — handles quoted fields with embedded commas and newlines
+  function parseCSV(text) {
+    const rows = [];
+    let i = 0;
+    while (i < text.length) {
+      const row = [];
+      while (i < text.length && text[i] !== '\n') {
+        if (text[i] === '"') {
+          i++;
+          let field = '';
+          while (i < text.length) {
+            if (text[i] === '"' && text[i+1] === '"') { field += '"'; i += 2; }
+            else if (text[i] === '"') { i++; break; }
+            else { field += text[i++]; }
+          }
+          row.push(field);
+        } else {
+          let field = '';
+          while (i < text.length && text[i] !== ',' && text[i] !== '\n') field += text[i++];
+          row.push(field);
+        }
+        if (text[i] === ',') i++;
+      }
+      if (text[i] === '\n') i++;
+      if (row.length > 0 && !(row.length === 1 && row[0] === '')) rows.push(row);
+    }
+    return rows;
+  }
+
+  function handleCSVUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const rows = parseCSV(e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n'));
+      if (rows.length < 2) { showToast('CSV appears empty.'); return; }
+      const headers = rows[0];
+      const nameIdx = headers.findIndex(h => h.trim() === 'Name');
+      const orgIdx = headers.findIndex(h => h.trim() === 'Organizations');
+      const descIdx = headers.findIndex(h => h.trim() === 'Description [Organization]');
+      if (nameIdx === -1 || descIdx === -1) {
+        showToast('CSV must have "Name" and "Description [Organization]" columns.');
+        return;
+      }
+      companies = rows.slice(1).map(r => ({
+        Name: (r[nameIdx] || '').trim(),
+        Organizations: orgIdx !== -1 ? (r[orgIdx] || '').trim() : '',
+        'Description [Organization]': (r[descIdx] || '').trim()
+      })).filter(c => c.Name);
+      listName = file.name.replace(/\.csv$/i, '');
+      results = {};
+      updateBatchSelect();
+      updateListBadge();
+      updateStats();
+      renderTable();
+      showToast(`Loaded ${companies.length} companies from ${file.name}`);
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  function updateBatchSelect() {
+    const sel = document.getElementById('batchSel');
+    const n = companies.length;
+    const options = [10, 25, 50].filter(v => v < n).map(v => `<option value="${v}">Run ${v} companies</option>`);
+    options.push(`<option value="${n}">Run all ${n}</option>`);
+    sel.innerHTML = options.join('');
+  }
+
+  function updateListBadge() {
+    const badge = document.getElementById('listBadge');
+    badge.innerHTML = `<strong>${companies.length}</strong>&nbsp;companies · ${escHtml(listName)}`;
+  }
 
   // Modal
   function openEditModal() {
@@ -624,9 +729,10 @@
   function updateStats() {
     const done = Object.values(results).filter(r => r.status === 'done').length;
     const errors = Object.values(results).filter(r => r.status === 'error').length;
+    document.getElementById('statTotal').textContent = companies.length;
     document.getElementById('statDone').textContent = done;
     document.getElementById('statErrors').textContent = errors;
-    document.getElementById('statRemaining').textContent = 136 - done;
+    document.getElementById('statRemaining').textContent = companies.length - done;
     document.getElementById('statsRow').style.display = 'flex';
   }
 
@@ -636,7 +742,7 @@
     const statusFilter = document.getElementById('filterStatus').value;
     const tbody = document.getElementById('tableBody');
 
-    const filtered = COMPANIES.filter(c => {
+    const filtered = companies.filter(c => {
       const nameMatch = c.Name.toLowerCase().includes(filter);
       const status = results[c.Name]?.status || 'pending';
       const statusMatch = statusFilter === 'all' || status === statusFilter;
@@ -651,7 +757,7 @@
     tbody.innerHTML = filtered.map(c => {
       const r = results[c.Name];
       const status = r?.status || 'pending';
-      const org = c.Organizations.replace(/<[^>]+>/g, '').trim();
+      const org = (c.Organizations || '').replace(/<[^>]+>/g, '').trim();
 
       let bulletsHtml;
       if (r?.bullets?.length) {
@@ -693,9 +799,7 @@
     const apiKey = getApiKey();
     if (!apiKey) throw new Error('No API key');
     const desc = company['Description [Organization]'];
-    if (!desc || desc.trim().length < 20) {
-      return null; // skip
-    }
+    if (!desc || desc.trim().length < 20) return null;
     const res = await fetch('/api/linkage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
@@ -712,18 +816,14 @@
   }
 
   async function rerun(name) {
-    const company = COMPANIES.find(c => c.Name === name);
+    const company = companies.find(c => c.Name === name);
     if (!company) return;
     if (!getApiKey()) { showToast('Enter your API key first.'); return; }
     results[name] = { status: 'loading' };
     renderTable();
     try {
       const bullets = await getLinkage(company);
-      if (bullets === null) {
-        results[name] = { status: 'skip' };
-      } else {
-        results[name] = { status: 'done', bullets };
-      }
+      results[name] = bullets === null ? { status: 'skip' } : { status: 'done', bullets };
     } catch(e) {
       results[name] = { status: 'error', errorMsg: e.message };
     }
@@ -743,8 +843,8 @@
     const apiKey = getApiKey();
     if (!apiKey) { showToast('Enter your Anthropic API key first.'); apiKeyInput.focus(); return; }
 
-    const count = document.getElementById('batchSel').value;
-    const toRun = COMPANIES.filter(c => !results[c.Name] || results[c.Name].status === 'error').slice(0, count === '136' ? 136 : parseInt(count));
+    const count = parseInt(document.getElementById('batchSel').value);
+    const toRun = companies.filter(c => !results[c.Name] || results[c.Name].status === 'error').slice(0, count);
     if (!toRun.length) { showToast('All selected companies already processed.'); return; }
 
     running = true;
@@ -763,11 +863,7 @@
         renderTable();
         try {
           const bullets = await getLinkage(company);
-          if (bullets === null) {
-            results[company.Name] = { status: 'skip' };
-          } else {
-            results[company.Name] = { status: 'done', bullets };
-          }
+          results[company.Name] = bullets === null ? { status: 'skip' } : { status: 'done', bullets };
         } catch(e) {
           results[company.Name] = { status: 'error', errorMsg: e.message };
         }
@@ -796,10 +892,10 @@
 
   function exportCSV() {
     const rows = [['Company', 'Organization', 'Bullet 1', 'Bullet 2', 'Bullet 3', 'Status']];
-    COMPANIES.forEach(c => {
+    companies.forEach(c => {
       const r = results[c.Name];
       const bullets = r?.bullets || [];
-      rows.push([c.Name, c.Organizations, bullets[0] || '', bullets[1] || '', bullets[2] || '', r?.status || 'pending']);
+      rows.push([c.Name, c.Organizations || '', bullets[0] || '', bullets[1] || '', bullets[2] || '', r?.status || 'pending']);
     });
     const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -811,6 +907,8 @@
   }
 
   // Init
+  updateBatchSelect();
+  updateListBadge();
   renderTable();
 </script>
 </body>
