@@ -40,7 +40,7 @@ Example format: ["Bullet 1 here.", "Bullet 2 here.", "Bullet 3 here."]`;
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 300,
         messages: [{ role: 'user', content: prompt }]
       })
