@@ -19,7 +19,7 @@ app.post('/api/linkage', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const prompt = `You are a strategic M&A advisor. Identify 2-3 specific linkage points between a prospect company and a BD target.
+  const prompt = `You are a BD advisor helping craft personalized outreach. Identify 2-3 specific similarities between a prospect and a BD target company that make the outreach relevant and credible.
 
 PROSPECT: ${prospectName}
 ${prospectDesc}
@@ -27,7 +27,7 @@ ${prospectDesc}
 TARGET: ${companyName}
 ${companyDesc}
 
-Output ONLY a JSON array of 2-3 short bullet strings (each under 20 words). Each bullet should describe one specific, concrete strategic overlap or complementarity between the two companies. Focus on technology overlap, customer overlap, or market adjacency. Be specific — reference actual capabilities of both companies. Do not use generic statements. No preamble, no explanation, just the JSON array.
+Output ONLY a JSON array of 2-3 short bullet strings (each under 20 words). Each bullet should highlight a specific similarity — shared technology focus, overlapping customer type, same market, or comparable problem being solved. The goal is to show the target that the prospect deeply understands their world. Be specific and reference actual details from both companies. Avoid partnership or integration language. No preamble, no explanation, just the JSON array.
 
 Example format: ["Bullet 1 here.", "Bullet 2 here.", "Bullet 3 here."]`;
 
