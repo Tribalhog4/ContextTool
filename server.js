@@ -61,6 +61,56 @@ Example format: ["Bullet 1 here.", "Bullet 2 here.", "Bullet 3 here."]`;
   }
 });
 
+app.post('/api/paragraph', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    return res.status(400).json({ error: 'Valid Anthropic API key required (must start with sk-ant-)' });
+  }
+
+  const { prospectName, prospectDesc, companyName, companyDesc, bullets } = req.body;
+  if (!prospectName || !prospectDesc || !companyName || !companyDesc || !bullets) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences to use in a BD outreach email to ${companyName}.
+
+Sentence 1 completes: "We're currently in market with a company that ___" — describe ${prospectName} in a way that is specifically relevant to ${companyName}'s business. Be concrete, not generic.
+
+Sentence 2 completes: "Given that ${companyName} ___" — draw on the similarities below to explain why you're reaching out. Keep it credible and specific.
+
+Similarities between ${prospectName} and ${companyName}:
+${bullets.map(b => '- ' + b).join('\n')}
+
+Tone: professional, direct, banker. No flattery. No filler phrases like "I came across" or "I wanted to reach out." Two sentences only. Output just the two sentences as plain text, no labels or formatting.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return res.status(response.status).json({ error: err.error?.message || `Anthropic API error ${response.status}` });
+    }
+
+    const data = await response.json();
+    const paragraph = data.content.map(i => i.text || '').join('').trim();
+    res.json({ paragraph });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`BD Linkage Tool running on port ${PORT}`);
 });
