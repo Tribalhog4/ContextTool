@@ -530,22 +530,24 @@
 
   <!-- Controls -->
   <div class="controls-row">
-    <select id="batchSel"></select>
-    <button class="btn btn-primary" id="runBtn" onclick="runBatch()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
-      Generate linkages
-    </button>
-    <button class="btn btn-secondary" onclick="exportCSV()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Export CSV
-    </button>
-    <button class="btn btn-secondary" onclick="clearAll()">Clear all</button>
     <button class="btn btn-secondary upload-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload list
       <input type="file" accept=".csv" onchange="handleCSVUpload(event)">
     </button>
     <span class="list-badge" id="listBadge"></span>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="batchSel"></select>
+      <button class="btn btn-primary" id="runBtn" onclick="runBatch()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+        Generate linkages
+      </button>
+      <button class="btn btn-secondary" onclick="exportCSV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+      <button class="btn btn-secondary" onclick="clearAll()">Clear all</button>
+    </div>
   </div>
 
   <!-- Progress -->

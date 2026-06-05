@@ -72,16 +72,16 @@ app.post('/api/paragraph', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences to use in a BD outreach email to ${companyName}.
+  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two tight sentences for a BD outreach email to ${companyName}.
 
-Sentence 1 completes: "We're currently in market with a company that ___" — describe ${prospectName} in a way that is specifically relevant to ${companyName}'s business. Be concrete, not generic.
+Sentence 1 completes: "We're currently in market with a company that ___" — describe ${prospectName} in one crisp clause that is directly relevant to ${companyName}'s business.
 
-Sentence 2 completes: "Given that ${companyName} ___" — draw on the similarities below to explain why you're reaching out. Keep it credible and specific.
+Sentence 2 completes: "Given that ${companyName} ___" — in one clause, name the core similarity that makes this outreach relevant.
 
-Similarities between ${prospectName} and ${companyName}:
-${bullets.map(b => '- ' + b).join('\n')}
+Similarities to draw from:
+${bullets.join(' | ')}
 
-Tone: professional, direct, banker. No flattery. No filler phrases like "I came across" or "I wanted to reach out." Two sentences only. Output just the two sentences as plain text, no labels or formatting.`;
+Rules: no dashes, no hyphens, no em dashes, no bullet markers. Sentences must be short and direct. No filler, no flattery. Plain text only, no labels or formatting.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
