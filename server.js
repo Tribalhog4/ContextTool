@@ -74,14 +74,18 @@ app.post('/api/paragraph', async (req, res) => {
 
   const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two tight sentences for a BD outreach email to ${companyName}.
 
-Sentence 1 completes: "We're currently in market with a company that ___" — describe ${prospectName} in one crisp clause that is directly relevant to ${companyName}'s business.
+Sentence 1 completes: "We're currently in market with a company that ___" — describe ${prospectName} in one crisp clause directly relevant to ${companyName}'s business.
 
-Sentence 2 completes: "Given that ${companyName} ___" — in one clause, name the core similarity that makes this outreach relevant.
+Sentence 2 completes: "Given that ${companyName} ___" — state the core similarity in one clause. End the sentence there. Do not add commentary like "we believe", "I thought", "there is a natural conversation", or any follow-on phrase. Just state the parallel and stop.
 
 Similarities to draw from:
 ${bullets.join(' | ')}
 
-Rules: no dashes, no hyphens, no em dashes, no bullet markers. Sentences must be short and direct. No filler, no flattery. Plain text only, no labels or formatting.`;
+Hard rules:
+- Zero hyphens anywhere, including inside compound words or technical terms. Write "dMRV to credit" not "dMRV-to-credit", "blockchain verified" not "blockchain-verified".
+- No em dashes, no bullet markers, no colons introducing lists.
+- No closing commentary or bridge phrases after the similarity is stated.
+- Short, direct sentences. Plain text only.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
