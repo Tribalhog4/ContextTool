@@ -543,6 +543,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
         Generate linkages
       </button>
+      <button class="btn btn-secondary" id="paraBtn" onclick="runAllParagraphs()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Generate outreach copy
+      </button>
       <button class="btn btn-secondary" onclick="exportCSV()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export CSV
@@ -829,12 +833,12 @@
       const badgeMap = { pending: 'badge-pending', loading: 'badge-loading', done: 'badge-done', error: 'badge-error', skip: 'badge-skip' };
       const nameSafe = c.Name.replace(/'/g, "\\'");
 
-      const draftBtn = r?.paragraph
+      const copyParaBtn = r?.paragraph
         ? `<button class="action-btn" onclick="copyParagraph('${nameSafe}')">⎘ Copy email</button>`
-        : `<button class="action-btn" onclick="draftParagraph('${nameSafe}')">✉ Draft email</button>`;
+        : '';
 
       const actions = status === 'done'
-        ? `<button class="action-btn" onclick="rerun('${nameSafe}')">↺ Redo</button><button class="action-btn" onclick="copyBullets('${nameSafe}')">⎘ Bullets</button>${draftBtn}`
+        ? `<button class="action-btn" onclick="rerun('${nameSafe}')">↺ Redo</button><button class="action-btn" onclick="copyBullets('${nameSafe}')">⎘ Bullets</button>${copyParaBtn}`
         : status === 'error'
         ? `<button class="action-btn" onclick="rerun('${nameSafe}')">↺ Retry</button>`
         : '';
@@ -895,6 +899,61 @@
     if (!r?.bullets) return;
     const text = r.bullets.map(b => '• ' + b).join('\n');
     navigator.clipboard.writeText(text).then(() => showToast('Bullets copied!'));
+  }
+
+  async function runAllParagraphs() {
+    if (running) return;
+    const apiKey = getApiKey();
+    if (!apiKey) { showToast('Enter your Anthropic API key first.'); apiKeyInput.focus(); return; }
+    const toRun = companies.filter(c => results[c.Name]?.status === 'done' && !results[c.Name]?.paragraph);
+    if (!toRun.length) { showToast('No companies with linkages ready for outreach copy.'); return; }
+
+    running = true;
+    document.getElementById('paraBtn').disabled = true;
+    document.getElementById('progressTrack').classList.add('visible');
+
+    let completed = 0;
+    const total = toRun.length;
+    const CONCURRENCY = 3;
+    let idx = 0;
+
+    async function worker() {
+      while (idx < toRun.length) {
+        const company = toRun[idx++];
+        results[company.Name] = { ...results[company.Name], paragraphLoading: true };
+        renderTable();
+        try {
+          const res = await fetch('/api/paragraph', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+            body: JSON.stringify({
+              prospectName: prospect.name,
+              prospectDesc: prospect.desc,
+              companyName: company.Name,
+              companyDesc: company['Description [Organization]'],
+              bullets: results[company.Name].bullets
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+          results[company.Name] = { ...results[company.Name], paragraphLoading: false, paragraph: data.paragraph };
+        } catch(e) {
+          results[company.Name] = { ...results[company.Name], paragraphLoading: false };
+          showToast('Error: ' + e.message);
+        }
+        completed++;
+        document.getElementById('progressFill').style.width = Math.round(completed / total * 100) + '%';
+        renderTable();
+      }
+    }
+
+    await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()));
+
+    running = false;
+    document.getElementById('paraBtn').disabled = false;
+    document.getElementById('progressTrack').classList.remove('visible');
+    document.getElementById('progressFill').style.width = '0%';
+    showToast(`Done — outreach copy generated for ${completed} companies.`);
   }
 
   async function draftParagraph(name) {
