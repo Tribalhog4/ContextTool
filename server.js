@@ -72,23 +72,18 @@ app.post('/api/paragraph', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences for a BD outreach email to ${companyName}.
+  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences for a BD outreach email.
 
 Sentence 1 completes: "We're currently in market with a company that ___"
-One short clause only. Describe what ${prospectName} does in a way that is relevant to ${companyName}. Do not over-explain. Under 20 words.
+One short clause. Describe what ${prospectName} does in a way that is directly relevant to ${companyName}. Under 18 words. No hyphens anywhere including compound words.
 
-Sentence 2 completes: "Given that ${companyName} _____, I thought it made sense to reach out."
-Fill in the blank with a short phrase (under 10 words) naming the shared angle. The sentence must end with "I thought it made sense to reach out." Do not describe ${companyName} in detail — they know what they do. Just name the parallel and close.
+Sentence 2 is fixed: "Given the similarity to ${companyName}, I thought it made sense to reach out."
+Output this sentence exactly as written above, word for word.
 
-Similarities to draw from:
+Similarities to draw from (use only to inform sentence 1):
 ${bullets.join(' | ')}
 
-Hard rules:
-- Output ONLY the two sentences, nothing else.
-- No revision notes, no asterisks, no self-correction, no meta-commentary.
-- Zero hyphens anywhere, including compound words. Write "dMRV to credit" not "dMRV-to-credit".
-- No em dashes, no bullet markers.
-- If you would normally revise your output, produce the final version directly instead.`;
+Output ONLY the two sentences. No notes, no revisions, no extra text.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
