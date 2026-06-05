@@ -521,8 +521,9 @@
     <div class="prospect-card-header">
       <div style="flex:1">
         <div class="label-tag">Prospect (shown anonymously in outreach)</div>
-        <div class="prospect-name" id="dispProspectName">CleanConnect.ai</div>
-        <div class="prospect-desc" id="dispProspectDesc">AI-powered monitoring and operational intelligence for oil &amp; gas infrastructure. Products include: autonomous site monitoring (gas/liquid leak detection, flare monitoring, hard hat &amp; fire detection via computer vision), digital twin visualization (Minerva), and blockchain-based emissions tokenization (ProveZero). Core value props: EPA-certified emissions monitoring, real-time sensor-to-insight pipeline, and converting verified emissions data into tradeable carbon units. Customers are upstream/midstream oil &amp; gas operators seeking to reduce venting/flaring, prove emissions compliance, and monetize clean operations.</div>
+        <div class="prospect-name" id="dispProspectName" style="display:none"></div>
+        <div class="prospect-desc" id="dispProspectDesc" style="display:none"></div>
+        <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one.</div>
       </div>
       <button class="btn btn-ghost" onclick="openEditModal()">Edit prospect</button>
     </div>
@@ -613,15 +614,11 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="companies.js"></script>
 <script>
-  let companies = typeof COMPANIES !== 'undefined' ? COMPANIES : [];
-  let listName = 'Default list';
+  let companies = [];
+  let listName = '';
 
-  let prospect = {
-    name: 'CleanConnect.ai',
-    desc: 'AI-powered monitoring and operational intelligence for oil & gas infrastructure. Products include: autonomous site monitoring (gas/liquid leak detection, flare monitoring, hard hat & fire detection via computer vision), digital twin visualization (Minerva), and blockchain-based emissions tokenization (ProveZero). Core value props: EPA-certified emissions monitoring, real-time sensor-to-insight pipeline, and converting verified emissions data into tradeable carbon units. Customers are upstream/midstream oil & gas operators seeking to reduce venting/flaring, prove emissions compliance, and monetize clean operations.'
-  };
+  let prospect = { name: '', desc: '' };
 
   let results = {};
   let running = false;
@@ -708,15 +705,30 @@
 
   function updateBatchSelect() {
     const sel = document.getElementById('batchSel');
+    const runBtn = document.getElementById('runBtn');
     const n = companies.length;
-    const options = [10, 25, 50].filter(v => v < n).map(v => `<option value="${v}">Run ${v} companies</option>`);
-    options.push(`<option value="${n}">Run all ${n}</option>`);
-    sel.innerHTML = options.join('');
+    if (n === 0) {
+      sel.innerHTML = '<option value="0">No list loaded</option>';
+      sel.disabled = true;
+      runBtn.disabled = true;
+    } else {
+      sel.disabled = false;
+      runBtn.disabled = false;
+      const options = [10, 25, 50].filter(v => v < n).map(v => `<option value="${v}">Run ${v} companies</option>`);
+      options.push(`<option value="${n}">Run all ${n}</option>`);
+      sel.innerHTML = options.join('');
+    }
   }
 
   function updateListBadge() {
     const badge = document.getElementById('listBadge');
-    badge.innerHTML = `<strong>${companies.length}</strong>&nbsp;companies · ${escHtml(listName)}`;
+    if (!companies.length) {
+      badge.innerHTML = '';
+      badge.style.display = 'none';
+    } else {
+      badge.style.display = 'inline-flex';
+      badge.innerHTML = `<strong>${companies.length}</strong>&nbsp;companies · ${escHtml(listName)}`;
+    }
   }
 
   // Modal
@@ -732,8 +744,14 @@
     const desc = document.getElementById('editDesc').value.trim();
     if (!name || !desc) { showToast('Please fill in both fields.'); return; }
     prospect = { name, desc };
-    document.getElementById('dispProspectName').textContent = name;
-    document.getElementById('dispProspectDesc').textContent = desc;
+    const nameEl = document.getElementById('dispProspectName');
+    const descEl = document.getElementById('dispProspectDesc');
+    const emptyEl = document.getElementById('dispProspectEmpty');
+    nameEl.textContent = name;
+    descEl.textContent = desc;
+    nameEl.style.display = '';
+    descEl.style.display = '';
+    emptyEl.style.display = 'none';
     closeModal();
     showToast('Prospect updated. Re-run to refresh linkages.');
   }
@@ -772,6 +790,10 @@
       return nameMatch && statusMatch;
     });
 
+    if (!companies.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Upload a CSV to get started.</td></tr>';
+      return;
+    }
     if (!filtered.length) {
       tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No companies match your filter.</td></tr>';
       return;
