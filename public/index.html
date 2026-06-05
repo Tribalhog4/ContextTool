@@ -497,6 +497,37 @@
     .main { padding: 1rem; }
     .api-input-wrap input { width: 160px; }
   }
+
+  .email-template-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .email-template-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .email-template-toggle {
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .email-template-body {
+    margin-top: 1rem;
+  }
+  .email-template-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+  .email-template-row .form-row { flex: 1; margin-bottom: 0; }
+  @media (max-width: 700px) {
+    .email-template-row { flex-direction: column; }
+  }
 </style>
 </head>
 <body>
@@ -529,15 +560,36 @@
     </div>
   </div>
 
+  <!-- Email template -->
+  <div class="email-template-card" id="emailTemplateCard">
+    <div class="email-template-header" onclick="toggleEmailTemplate()">
+      <span class="label-tag" style="margin-bottom:0">Email template</span>
+      <span class="email-template-toggle" id="emailTemplateToggle">▸ Expand</span>
+    </div>
+    <div class="email-template-body" id="emailTemplateBody" style="display:none">
+      <div class="email-template-row">
+        <div class="form-row" style="margin-bottom:0;flex:1">
+          <label class="form-label">Intro</label>
+          <textarea id="emailIntro" rows="4" placeholder="Opening paragraph(s) before the linkage copy..."></textarea>
+        </div>
+        <div class="form-row" style="margin-bottom:0;flex:1">
+          <label class="form-label">Outro</label>
+          <textarea id="emailOutro" rows="4" placeholder="Closing paragraph(s) after the linkage copy..."></textarea>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text3)">The linkage copy will appear between intro and outro in the assembled email.</div>
+    </div>
+  </div>
+
   <!-- Controls -->
-  <div class="controls-row">
-    <button class="btn btn-secondary upload-btn">
+  <div class="controls-row" style="flex-wrap:nowrap;overflow-x:auto;">
+    <button class="btn btn-secondary upload-btn" style="flex-shrink:0">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       Upload list
       <input type="file" accept=".csv" onchange="handleCSVUpload(event)">
     </button>
     <span class="list-badge" id="listBadge"></span>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0;">
       <select id="batchSel"></select>
       <button class="btn btn-primary" id="runBtn" onclick="runBatch()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
@@ -1044,12 +1096,38 @@
     renderTable();
   }
 
+  function toggleEmailTemplate() {
+    const body = document.getElementById('emailTemplateBody');
+    const toggle = document.getElementById('emailTemplateToggle');
+    const open = body.style.display === 'none';
+    body.style.display = open ? '' : 'none';
+    toggle.textContent = open ? '▾ Collapse' : '▸ Expand';
+  }
+
+  function assembleEmail(paragraph) {
+    const intro = (document.getElementById('emailIntro').value || '').trim();
+    const outro = (document.getElementById('emailOutro').value || '').trim();
+    if (!paragraph) return '';
+    const parts = [intro, paragraph, outro].filter(Boolean);
+    return parts.join('\n\n');
+  }
+
   function exportCSV() {
-    const rows = [['Company', 'Organization', 'Bullet 1', 'Bullet 2', 'Bullet 3', 'Outreach Copy', 'Status']];
+    const rows = [['Company', 'Organization', 'Description', 'Talking Points', 'Outreach Copy', 'Full Email Body', 'Status']];
     companies.forEach(c => {
       const r = results[c.Name];
       const bullets = r?.bullets || [];
-      rows.push([c.Name, c.Organizations || '', bullets[0] || '', bullets[1] || '', bullets[2] || '', r?.paragraph || '', r?.status || 'pending']);
+      const paragraph = r?.paragraph || '';
+      const fullEmail = assembleEmail(paragraph);
+      rows.push([
+        c.Name,
+        c.Organizations || '',
+        c['Description [Organization]'] || '',
+        bullets.join(' | '),
+        paragraph,
+        fullEmail,
+        r?.status || 'pending'
+      ]);
     });
     const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
