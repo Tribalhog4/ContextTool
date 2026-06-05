@@ -82,10 +82,12 @@ Similarities to draw from:
 ${bullets.join(' | ')}
 
 Hard rules:
+- Output ONLY the two sentences. Nothing before them, nothing after them.
+- No revision notes, no asterisks, no self-correction, no meta-commentary of any kind.
 - Zero hyphens anywhere, including inside compound words or technical terms. Write "dMRV to credit" not "dMRV-to-credit", "blockchain verified" not "blockchain-verified".
 - No em dashes, no bullet markers, no colons introducing lists.
 - No closing commentary or bridge phrases after the similarity is stated.
-- Short, direct sentences. Plain text only.`;
+- If you would normally revise your output, produce the final version directly instead.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
