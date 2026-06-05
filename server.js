@@ -72,21 +72,22 @@ app.post('/api/paragraph', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two tight sentences for a BD outreach email to ${companyName}.
+  const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences for a BD outreach email to ${companyName}.
 
-Sentence 1 completes: "We're currently in market with a company that ___" — describe ${prospectName} in one crisp clause directly relevant to ${companyName}'s business.
+Sentence 1 completes: "We're currently in market with a company that ___"
+One short clause only. Describe what ${prospectName} does in a way that is relevant to ${companyName}. Do not over-explain. Under 20 words.
 
-Sentence 2 completes: "Given that ${companyName} ___" — state the core similarity in one clause. End the sentence there. Do not add commentary like "we believe", "I thought", "there is a natural conversation", or any follow-on phrase. Just state the parallel and stop.
+Sentence 2 completes: "Given that ${companyName} _____, I thought it made sense to reach out."
+Fill in the blank with a short phrase (under 10 words) naming the shared angle. The sentence must end with "I thought it made sense to reach out." Do not describe ${companyName} in detail — they know what they do. Just name the parallel and close.
 
 Similarities to draw from:
 ${bullets.join(' | ')}
 
 Hard rules:
-- Output ONLY the two sentences. Nothing before them, nothing after them.
-- No revision notes, no asterisks, no self-correction, no meta-commentary of any kind.
-- Zero hyphens anywhere, including inside compound words or technical terms. Write "dMRV to credit" not "dMRV-to-credit", "blockchain verified" not "blockchain-verified".
-- No em dashes, no bullet markers, no colons introducing lists.
-- No closing commentary or bridge phrases after the similarity is stated.
+- Output ONLY the two sentences, nothing else.
+- No revision notes, no asterisks, no self-correction, no meta-commentary.
+- Zero hyphens anywhere, including compound words. Write "dMRV to credit" not "dMRV-to-credit".
+- No em dashes, no bullet markers.
 - If you would normally revise your output, produce the final version directly instead.`;
 
   try {
