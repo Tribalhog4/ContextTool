@@ -323,10 +323,11 @@
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover td { background: var(--bg); }
 
-  .col-name { width: 18%; }
-  .col-bullets { width: 54%; }
-  .col-status { width: 10%; }
-  .col-actions { width: 18%; }
+  .col-name { width: 14%; }
+  .col-bullets { width: 30%; }
+  .col-para { width: 32%; }
+  .col-status { width: 8%; }
+  .col-actions { width: 16%; }
 
   .company-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
   .company-org { font-size: 11px; color: var(--text3); }
@@ -491,7 +492,7 @@
   @media (max-width: 700px) {
     .col-name { width: 25%; }
     .col-bullets { width: 75%; }
-    .col-status, .col-actions { display: none; }
+    .col-para, .col-status, .col-actions { display: none; }
     .header { padding: 0 1rem; }
     .main { padding: 1rem; }
     .api-input-wrap input { width: 160px; }
@@ -578,6 +579,7 @@
         <tr>
           <th class="col-name">Company</th>
           <th class="col-bullets">Linkage bullets</th>
+          <th class="col-para">Outreach copy</th>
           <th class="col-status">Status</th>
           <th class="col-actions">Actions</th>
         </tr>
@@ -769,7 +771,7 @@
     });
 
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No companies match your filter.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No companies match your filter.</td></tr>';
       return;
     }
 
@@ -780,13 +782,7 @@
 
       let bulletsHtml;
       if (r?.bullets?.length) {
-        let paragraphHtml = '';
-        if (r.paragraph) {
-          paragraphHtml = `<div class="paragraph-block"><div class="paragraph-label">Outreach copy</div>${escHtml(r.paragraph)}</div>`;
-        } else if (r.paragraphLoading) {
-          paragraphHtml = `<div class="paragraph-block"><span class="loading-text">Drafting...</span></div>`;
-        }
-        bulletsHtml = '<ul class="bullets">' + r.bullets.map(b => `<li>${escHtml(b)}</li>`).join('') + '</ul>' + paragraphHtml;
+        bulletsHtml = '<ul class="bullets">' + r.bullets.map(b => `<li>${escHtml(b)}</li>`).join('') + '</ul>';
       } else if (status === 'loading') {
         bulletsHtml = '<span class="loading-text">Generating...</span>';
       } else if (status === 'error') {
@@ -795,6 +791,15 @@
         bulletsHtml = '<span class="placeholder-text">No description — skipped</span>';
       } else {
         bulletsHtml = '<span class="placeholder-text">—</span>';
+      }
+
+      let paraHtml;
+      if (r?.paragraph) {
+        paraHtml = `<span style="line-height:1.6">${escHtml(r.paragraph)}</span>`;
+      } else if (r?.paragraphLoading) {
+        paraHtml = '<span class="loading-text">Drafting...</span>';
+      } else {
+        paraHtml = '<span class="placeholder-text">—</span>';
       }
 
       const badgeMap = { pending: 'badge-pending', loading: 'badge-loading', done: 'badge-done', error: 'badge-error', skip: 'badge-skip' };
@@ -813,6 +818,7 @@
       return `<tr>
         <td class="col-name"><div class="company-name">${escHtml(c.Name)}</div><div class="company-org">${escHtml(org)}</div></td>
         <td class="col-bullets">${bulletsHtml}</td>
+        <td class="col-para">${paraHtml}</td>
         <td class="col-status"><span class="badge ${badgeMap[status] || 'badge-pending'}">${status}</span></td>
         <td class="col-actions">${actions}</td>
       </tr>`;
@@ -956,11 +962,11 @@
   }
 
   function exportCSV() {
-    const rows = [['Company', 'Organization', 'Bullet 1', 'Bullet 2', 'Bullet 3', 'Status']];
+    const rows = [['Company', 'Organization', 'Bullet 1', 'Bullet 2', 'Bullet 3', 'Outreach Copy', 'Status']];
     companies.forEach(c => {
       const r = results[c.Name];
       const bullets = r?.bullets || [];
-      rows.push([c.Name, c.Organizations || '', bullets[0] || '', bullets[1] || '', bullets[2] || '', r?.status || 'pending']);
+      rows.push([c.Name, c.Organizations || '', bullets[0] || '', bullets[1] || '', bullets[2] || '', r?.paragraph || '', r?.status || 'pending']);
     });
     const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
