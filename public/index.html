@@ -567,6 +567,10 @@
       <span class="email-template-toggle" id="emailTemplateToggle">▸ Expand</span>
     </div>
     <div class="email-template-body" id="emailTemplateBody" style="display:none">
+      <div class="form-row" style="margin-bottom:1rem">
+        <label class="form-label">Subject line</label>
+        <input type="text" id="emailSubject" placeholder="e.g. Introduction — Bowen Energy Practice" style="width:100%">
+      </div>
       <div class="email-template-row">
         <div class="form-row" style="margin-bottom:0;flex:1">
           <label class="form-label">Intro</label>
@@ -577,7 +581,7 @@
           <textarea id="emailOutro" rows="4" placeholder="Closing paragraph(s) after the linkage copy..."></textarea>
         </div>
       </div>
-      <div style="margin-top:8px;font-size:12px;color:var(--text3)">The linkage copy will appear between intro and outro in the assembled email.</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text3)">The linkage copy will appear between intro and outro. Export produces a mail merge file: To Email, Subject, First Name, Email Body.</div>
     </div>
   </div>
 
@@ -738,15 +742,25 @@
       const nameIdx = headers.findIndex(h => h.trim() === 'Name');
       const orgIdx = headers.findIndex(h => h.trim() === 'Organizations');
       const descIdx = headers.findIndex(h => h.trim() === 'Description [Organization]');
+      const peopleIdx = headers.findIndex(h => h.trim() === 'People');
       if (nameIdx === -1 || descIdx === -1) {
         showToast('CSV must have "Name" and "Description [Organization]" columns.');
         return;
       }
-      companies = rows.slice(1).map(r => ({
-        Name: (r[nameIdx] || '').trim(),
-        Organizations: orgIdx !== -1 ? (r[orgIdx] || '').trim() : '',
-        'Description [Organization]': (r[descIdx] || '').trim()
-      })).filter(c => c.Name);
+      companies = rows.slice(1).map(r => {
+        const peopleRaw = peopleIdx !== -1 ? (r[peopleIdx] || '').trim() : '';
+        const emailMatch = peopleRaw.match(/<([^>]+)>/);
+        const email = emailMatch ? emailMatch[1].trim() : '';
+        const fullName = peopleRaw.replace(/<[^>]+>/, '').trim();
+        const firstName = fullName.split(/\s+/)[0] || '';
+        return {
+          Name: (r[nameIdx] || '').trim(),
+          Organizations: orgIdx !== -1 ? (r[orgIdx] || '').trim() : '',
+          'Description [Organization]': (r[descIdx] || '').trim(),
+          _firstName: firstName,
+          _email: email
+        };
+      }).filter(c => c.Name);
       listName = file.name.replace(/\.csv$/i, '');
       results = {};
       updateBatchSelect();
@@ -1113,29 +1127,26 @@
   }
 
   function exportCSV() {
-    const rows = [['Company', 'Organization', 'Description', 'Talking Points', 'Outreach Copy', 'Full Email Body', 'Status']];
+    const subject = document.getElementById('emailSubject').value.trim();
+    const rows = [['To Email', 'Subject', 'First Name', 'Email Body']];
     companies.forEach(c => {
       const r = results[c.Name];
-      const bullets = r?.bullets || [];
       const paragraph = r?.paragraph || '';
       const fullEmail = assembleEmail(paragraph);
       rows.push([
-        c.Name,
-        c.Organizations || '',
-        c['Description [Organization]'] || '',
-        bullets.join(' | '),
-        paragraph,
-        fullEmail,
-        r?.status || 'pending'
+        c._email || '',
+        subject,
+        c._firstName || '',
+        fullEmail
       ]);
     });
     const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'bd_linkages.csv'; a.click();
+    a.href = url; a.download = 'bd_outreach_merge.csv'; a.click();
     URL.revokeObjectURL(url);
-    showToast('CSV exported.');
+    showToast('Mail merge CSV exported.');
   }
 
   // Init
