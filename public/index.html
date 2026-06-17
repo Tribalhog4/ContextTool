@@ -498,36 +498,6 @@
     .api-input-wrap input { width: 160px; }
   }
 
-  .email-template-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-  .email-template-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    user-select: none;
-  }
-  .email-template-toggle {
-    font-size: 12px;
-    color: var(--text2);
-  }
-  .email-template-body {
-    margin-top: 1rem;
-  }
-  .email-template-row {
-    display: flex;
-    gap: 1.5rem;
-    align-items: flex-start;
-  }
-  .email-template-row .form-row { flex: 1; margin-bottom: 0; }
-  @media (max-width: 700px) {
-    .email-template-row { flex-direction: column; }
-  }
 </style>
 </head>
 <body>
@@ -557,31 +527,6 @@
         <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one.</div>
       </div>
       <button class="btn btn-ghost" onclick="openEditModal()">Edit prospect</button>
-    </div>
-  </div>
-
-  <!-- Email template -->
-  <div class="email-template-card" id="emailTemplateCard">
-    <div class="email-template-header" onclick="toggleEmailTemplate()">
-      <span class="label-tag" style="margin-bottom:0">Email template</span>
-      <span class="email-template-toggle" id="emailTemplateToggle">▸ Expand</span>
-    </div>
-    <div class="email-template-body" id="emailTemplateBody" style="display:none">
-      <div class="form-row" style="margin-bottom:1rem">
-        <label class="form-label">Subject line</label>
-        <input type="text" id="emailSubject" placeholder="e.g. Introduction — Bowen Energy Practice" style="width:100%">
-      </div>
-      <div class="email-template-row">
-        <div class="form-row" style="margin-bottom:0;flex:1">
-          <label class="form-label">Intro</label>
-          <textarea id="emailIntro" rows="4" placeholder="Opening paragraph(s) before the linkage copy..."></textarea>
-        </div>
-        <div class="form-row" style="margin-bottom:0;flex:1">
-          <label class="form-label">Outro</label>
-          <textarea id="emailOutro" rows="4" placeholder="Closing paragraph(s) after the linkage copy..."></textarea>
-        </div>
-      </div>
-      <div style="margin-top:8px;font-size:12px;color:var(--text3)">The linkage copy will appear between intro and outro. Export produces a mail merge file: To Email, Subject, First Name, Email Body.</div>
     </div>
   </div>
 
@@ -1110,34 +1055,14 @@
     renderTable();
   }
 
-  function toggleEmailTemplate() {
-    const body = document.getElementById('emailTemplateBody');
-    const toggle = document.getElementById('emailTemplateToggle');
-    const open = body.style.display === 'none';
-    body.style.display = open ? '' : 'none';
-    toggle.textContent = open ? '▾ Collapse' : '▸ Expand';
-  }
-
-  function assembleEmail(paragraph) {
-    const intro = (document.getElementById('emailIntro').value || '').trim();
-    const outro = (document.getElementById('emailOutro').value || '').trim();
-    if (!paragraph) return '';
-    const parts = [intro, paragraph, outro].filter(Boolean);
-    return parts.join('\n\n');
-  }
-
   function exportCSV() {
-    const subject = document.getElementById('emailSubject').value.trim();
-    const rows = [['To Email', 'Subject', 'First Name', 'Email Body']];
+    const rows = [['Email Address', 'First Name', 'Outreach Copy']];
     companies.forEach(c => {
       const r = results[c.Name];
-      const paragraph = r?.paragraph || '';
-      const fullEmail = assembleEmail(paragraph);
       rows.push([
         c._email || '',
-        subject,
         c._firstName || '',
-        fullEmail
+        r?.paragraph || ''
       ]);
     });
     const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
