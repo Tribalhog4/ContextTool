@@ -567,7 +567,7 @@
   <div class="prospect-card">
     <div class="prospect-card-header">
       <div style="flex:1">
-        <div class="label-tag" id="prospectLabel">Prospect</div>
+        <div class="label-tag" id="prospectLabel">Current deal</div>
         <!-- Current deal inline fields -->
         <div class="past-deal-fields visible" id="currentDealDisplay">
           <div>
@@ -689,7 +689,7 @@
     document.getElementById('currentDealDisplay').classList.toggle('visible', mode === 'current');
     document.getElementById('pastDealFields').classList.toggle('visible', mode === 'past');
     document.getElementById('prospectLabel').textContent = mode === 'current'
-      ? 'Prospect'
+      ? 'Current deal'
       : 'Past deal reference';
   }
 
