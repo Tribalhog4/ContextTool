@@ -567,12 +567,12 @@
   <div class="prospect-card">
     <div class="prospect-card-header">
       <div style="flex:1">
-        <div class="label-tag" id="prospectLabel">Prospect (shown anonymously in outreach)</div>
+        <div class="label-tag" id="prospectLabel">Prospect</div>
         <!-- Current deal display -->
         <div id="currentDealDisplay">
           <div class="prospect-name" id="dispProspectName" style="display:none"></div>
           <div class="prospect-desc" id="dispProspectDesc" style="display:none"></div>
-          <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one.</div>
+          <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one. The name will appear in outreach copy.</div>
         </div>
         <!-- Past deal inputs (inline, always visible when mode=past) -->
         <div class="past-deal-fields" id="pastDealFields">
@@ -705,7 +705,7 @@
     document.getElementById('pastDealFields').classList.toggle('visible', mode === 'past');
     document.getElementById('editProspectBtn').style.display = mode === 'current' ? '' : 'none';
     document.getElementById('prospectLabel').textContent = mode === 'current'
-      ? 'Prospect (shown anonymously in outreach)'
+      ? 'Prospect'
       : 'Past deal reference';
   }
 

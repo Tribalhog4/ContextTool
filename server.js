@@ -83,8 +83,8 @@ Fill in the blank with one short clause (under 18 words) describing ${dealName} 
     if (!prospectName || !prospectDesc) {
       return res.status(400).json({ error: 'Current deal mode requires prospectName and prospectDesc' });
     }
-    sentence1Instruction = `Sentence 1 completes: "We're currently in market with a company that ___"
-One short clause. Describe what ${prospectName} does in a way that is directly relevant to ${companyName}. Under 18 words. No hyphens anywhere including compound words. Write "to" not "-to-" in compound phrases.`;
+    sentence1Instruction = `Sentence 1 completes: "We're currently in market with ${prospectName}, a company that ___"
+Fill in the blank with one short clause (under 18 words) describing ${prospectName} based on: ${prospectDesc}. Frame it in a way that is directly relevant to ${companyName}. No hyphens anywhere including compound words. Write "to" not "-to-" in compound phrases.`;
   }
 
   const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences for a BD outreach email.
