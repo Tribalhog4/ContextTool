@@ -198,9 +198,14 @@
 
   .controls-row {
     display: flex;
-    gap: 10px;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
     margin-bottom: 1.25rem;
+  }
+  .controls-row-inner {
+    display: flex;
+    gap: 8px;
+    align-items: center;
     flex-wrap: wrap;
   }
 
@@ -498,7 +503,7 @@
     gap: 2px;
   }
   .mode-btn {
-    padding: 4px 12px;
+    padding: 4px 9px;
     border-radius: calc(var(--radius) - 2px);
     border: none;
     background: transparent;
@@ -562,13 +567,7 @@
   <div class="prospect-card">
     <div class="prospect-card-header">
       <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
-          <span class="label-tag" id="prospectLabel">Prospect (shown anonymously in outreach)</span>
-          <div class="mode-toggle">
-            <button class="mode-btn active" id="modeCurrentBtn" onclick="setMode('current')">Current deal</button>
-            <button class="mode-btn" id="modePastBtn" onclick="setMode('past')">Past deal</button>
-          </div>
-        </div>
+        <div class="label-tag" id="prospectLabel">Prospect (shown anonymously in outreach)</div>
         <!-- Current deal display -->
         <div id="currentDealDisplay">
           <div class="prospect-name" id="dispProspectName" style="display:none"></div>
@@ -592,19 +591,27 @@
   </div>
 
   <!-- Controls -->
-  <div class="controls-row" style="flex-wrap:nowrap;overflow-x:auto;">
-    <button class="btn btn-secondary upload-btn" style="flex-shrink:0">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Upload list
-      <input type="file" accept=".csv" onchange="handleCSVUpload(event)">
-    </button>
-    <span class="list-badge" id="listBadge"></span>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0;">
-      <select id="batchSel"></select>
+  <div class="controls-row">
+    <!-- Row 1: list management -->
+    <div class="controls-row-inner">
+      <button class="btn btn-secondary upload-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload list
+        <input type="file" accept=".csv" onchange="handleCSVUpload(event)">
+      </button>
+      <span class="list-badge" id="listBadge"></span>
+      <select id="batchSel" style="margin-left:auto"></select>
       <button class="btn btn-primary" id="runBtn" onclick="runBatch()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
         Generate linkages
       </button>
+    </div>
+    <!-- Row 2: outreach copy -->
+    <div class="controls-row-inner">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="modeCurrentBtn" onclick="setMode('current')">Current deal</button>
+        <button class="mode-btn" id="modePastBtn" onclick="setMode('past')">Past deal</button>
+      </div>
       <button class="btn btn-secondary" id="paraBtn" onclick="runAllParagraphs()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Generate outreach copy
