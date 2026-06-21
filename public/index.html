@@ -568,25 +568,29 @@
     <div class="prospect-card-header">
       <div style="flex:1">
         <div class="label-tag" id="prospectLabel">Prospect</div>
-        <!-- Current deal display -->
-        <div id="currentDealDisplay">
-          <div class="prospect-name" id="dispProspectName" style="display:none"></div>
-          <div class="prospect-desc" id="dispProspectDesc" style="display:none"></div>
-          <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one. The name will appear in outreach copy.</div>
+        <!-- Current deal inline fields -->
+        <div class="past-deal-fields visible" id="currentDealDisplay">
+          <div>
+            <label for="prospectName">Company name</label>
+            <input type="text" id="prospectName" placeholder="e.g. Acme Energy">
+          </div>
+          <div>
+            <label for="prospectDesc">Description</label>
+            <textarea id="prospectDesc" rows="3" placeholder="Describe the prospect's products, customers, and key capabilities..."></textarea>
+          </div>
         </div>
-        <!-- Past deal inputs (inline, always visible when mode=past) -->
+        <!-- Past deal inline fields -->
         <div class="past-deal-fields" id="pastDealFields">
           <div>
-            <label for="pastDealName">Deal name</label>
+            <label for="pastDealName">Company name</label>
             <input type="text" id="pastDealName" placeholder="e.g. Acme Carbon">
           </div>
           <div>
-            <label for="pastDealDesc">Deal description</label>
+            <label for="pastDealDesc">Description</label>
             <textarea id="pastDealDesc" rows="3" placeholder="Briefly describe the company Bowen sold — products, customers, key capabilities..."></textarea>
           </div>
         </div>
       </div>
-      <button class="btn btn-ghost" id="editProspectBtn" onclick="openEditModal()">Edit prospect</button>
     </div>
   </div>
 
@@ -666,24 +670,6 @@
 
 </main>
 
-<!-- Edit prospect modal -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
-  <div class="modal">
-    <div class="modal-title">Edit prospect</div>
-    <div class="form-row">
-      <label class="form-label" for="editName">Name</label>
-      <input type="text" id="editName" placeholder="Company name">
-    </div>
-    <div class="form-row">
-      <label class="form-label" for="editDesc">Description</label>
-      <textarea id="editDesc" rows="6" placeholder="Describe the prospect's products, customers, and key capabilities..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveProspect()">Save</button>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
@@ -691,7 +677,6 @@
   let companies = [];
   let listName = '';
 
-  let prospect = { name: '', desc: '' };
   let outreachMode = 'current'; // 'current' | 'past'
 
   let results = {};
@@ -701,9 +686,8 @@
     outreachMode = mode;
     document.getElementById('modeCurrentBtn').classList.toggle('active', mode === 'current');
     document.getElementById('modePastBtn').classList.toggle('active', mode === 'past');
-    document.getElementById('currentDealDisplay').style.display = mode === 'current' ? '' : 'none';
+    document.getElementById('currentDealDisplay').classList.toggle('visible', mode === 'current');
     document.getElementById('pastDealFields').classList.toggle('visible', mode === 'past');
-    document.getElementById('editProspectBtn').style.display = mode === 'current' ? '' : 'none';
     document.getElementById('prospectLabel').textContent = mode === 'current'
       ? 'Prospect'
       : 'Past deal reference';
@@ -717,7 +701,10 @@
       if (!dealName || !dealDesc) throw new Error('Enter a deal name and description for past deal mode.');
       return { ...base, dealName, dealDesc };
     }
-    return { ...base, prospectName: prospect.name, prospectDesc: prospect.desc };
+    const prospectName = document.getElementById('prospectName').value.trim();
+    const prospectDesc = document.getElementById('prospectDesc').value.trim();
+    if (!prospectName || !prospectDesc) throw new Error('Enter a prospect name and description.');
+    return { ...base, prospectName, prospectDesc };
   }
 
   // API key validation
@@ -838,31 +825,6 @@
     }
   }
 
-  // Modal
-  function openEditModal() {
-    document.getElementById('editName').value = prospect.name;
-    document.getElementById('editDesc').value = prospect.desc;
-    document.getElementById('modalOverlay').classList.add('open');
-  }
-  function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-  function closeModalOnBg(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
-  function saveProspect() {
-    const name = document.getElementById('editName').value.trim();
-    const desc = document.getElementById('editDesc').value.trim();
-    if (!name || !desc) { showToast('Please fill in both fields.'); return; }
-    prospect = { name, desc };
-    const nameEl = document.getElementById('dispProspectName');
-    const descEl = document.getElementById('dispProspectDesc');
-    const emptyEl = document.getElementById('dispProspectEmpty');
-    nameEl.textContent = name;
-    descEl.textContent = desc;
-    nameEl.style.display = '';
-    descEl.style.display = '';
-    emptyEl.style.display = 'none';
-    closeModal();
-    showToast('Prospect updated. Re-run to refresh linkages.');
-  }
-
   // Toast
   let toastTimer;
   function showToast(msg) {
@@ -970,8 +932,8 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
       body: JSON.stringify({
-        prospectName: prospect.name,
-        prospectDesc: prospect.desc,
+        prospectName: document.getElementById('prospectName').value.trim(),
+        prospectDesc: document.getElementById('prospectDesc').value.trim(),
         companyName: company.Name,
         companyDesc: desc
       })
@@ -1008,7 +970,7 @@
     if (running) return;
     const apiKey = getApiKey();
     if (!apiKey) { showToast('Enter your Anthropic API key first.'); apiKeyInput.focus(); return; }
-    if (outreachMode === 'current' && (!prospect.name || !prospect.desc)) { showToast('Add a prospect before generating outreach copy.'); return; }
+    if (outreachMode === 'current' && (!document.getElementById('prospectName').value.trim() || !document.getElementById('prospectDesc').value.trim())) { showToast('Enter a prospect name and description first.'); return; }
     if (outreachMode === 'past' && (!document.getElementById('pastDealName').value.trim() || !document.getElementById('pastDealDesc').value.trim())) { showToast('Enter a deal name and description for past deal mode.'); return; }
     const toRun = companies.filter(c => results[c.Name]?.status === 'done' && !results[c.Name]?.paragraph);
     if (!toRun.length) { showToast('No companies with linkages ready for outreach copy.'); return; }
@@ -1091,6 +1053,7 @@
     if (running) return;
     const apiKey = getApiKey();
     if (!apiKey) { showToast('Enter your Anthropic API key first.'); apiKeyInput.focus(); return; }
+    if (!document.getElementById('prospectName').value.trim() || !document.getElementById('prospectDesc').value.trim()) { showToast('Enter a prospect name and description first.'); return; }
 
     const count = parseInt(document.getElementById('batchSel').value);
     const toRun = companies.filter(c => !results[c.Name] || results[c.Name].status === 'error').slice(0, count);
