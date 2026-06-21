@@ -67,15 +67,29 @@ app.post('/api/paragraph', async (req, res) => {
     return res.status(400).json({ error: 'Valid Anthropic API key required (must start with sk-ant-)' });
   }
 
-  const { prospectName, prospectDesc, companyName, companyDesc, bullets } = req.body;
-  if (!prospectName || !prospectDesc || !companyName || !companyDesc || !bullets) {
+  const { prospectName, prospectDesc, companyName, companyDesc, bullets, mode, dealName, dealDesc } = req.body;
+  if (!companyName || !companyDesc || !bullets) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  let sentence1Instruction;
+  if (mode === 'past') {
+    if (!dealName || !dealDesc) {
+      return res.status(400).json({ error: 'Past deal mode requires dealName and dealDesc' });
+    }
+    sentence1Instruction = `Sentence 1 completes: "We recently facilitated the sale of ${dealName}, a company that ___"
+Fill in the blank with one short clause (under 18 words) describing ${dealName} based on: ${dealDesc}. Frame it in a way that is directly relevant to ${companyName}. No hyphens anywhere including compound words. Write "to" not "-to-" in compound phrases.`;
+  } else {
+    if (!prospectName || !prospectDesc) {
+      return res.status(400).json({ error: 'Current deal mode requires prospectName and prospectDesc' });
+    }
+    sentence1Instruction = `Sentence 1 completes: "We're currently in market with a company that ___"
+One short clause. Describe what ${prospectName} does in a way that is directly relevant to ${companyName}. Under 18 words. No hyphens anywhere including compound words. Write "to" not "-to-" in compound phrases.`;
   }
 
   const prompt = `You are a VP at Bowen, a tech-focused investment bank. Write exactly two sentences for a BD outreach email.
 
-Sentence 1 completes: "We're currently in market with a company that ___"
-One short clause. Describe what ${prospectName} does in a way that is directly relevant to ${companyName}. Under 18 words. No hyphens anywhere including compound words.
+${sentence1Instruction}
 
 Sentence 2 is fixed: "Given the similarity to ${companyName}, I thought it made sense to reach out."
 Output this sentence exactly as written above, word for word.
@@ -83,7 +97,7 @@ Output this sentence exactly as written above, word for word.
 Similarities to draw from (use only to inform sentence 1):
 ${bullets.join(' | ')}
 
-Output ONLY the two sentences. No notes, no revisions, no extra text.`;
+Output ONLY the two sentences. No notes, no revisions, no extra text. If you would normally revise your output, produce the final version directly instead.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {

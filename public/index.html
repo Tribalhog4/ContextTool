@@ -489,6 +489,47 @@
   }
   .list-badge strong { color: var(--text); }
 
+  .mode-toggle {
+    display: inline-flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2px;
+    gap: 2px;
+  }
+  .mode-btn {
+    padding: 4px 12px;
+    border-radius: calc(var(--radius) - 2px);
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+  .mode-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  .mode-btn:hover:not(.active) { color: var(--text); }
+  .past-deal-fields { display: none; margin-top: 10px; }
+  .past-deal-fields.visible { display: flex; flex-direction: column; gap: 8px; }
+  .past-deal-fields input, .past-deal-fields textarea {
+    width: 100%; box-sizing: border-box;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .past-deal-fields textarea { resize: vertical; }
+  .past-deal-fields label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+
   @media (max-width: 700px) {
     .col-name { width: 25%; }
     .col-bullets { width: 75%; }
@@ -521,12 +562,32 @@
   <div class="prospect-card">
     <div class="prospect-card-header">
       <div style="flex:1">
-        <div class="label-tag">Prospect (shown anonymously in outreach)</div>
-        <div class="prospect-name" id="dispProspectName" style="display:none"></div>
-        <div class="prospect-desc" id="dispProspectDesc" style="display:none"></div>
-        <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one.</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;">
+          <span class="label-tag" id="prospectLabel">Prospect (shown anonymously in outreach)</span>
+          <div class="mode-toggle">
+            <button class="mode-btn active" id="modeCurrentBtn" onclick="setMode('current')">Current deal</button>
+            <button class="mode-btn" id="modePastBtn" onclick="setMode('past')">Past deal</button>
+          </div>
+        </div>
+        <!-- Current deal display -->
+        <div id="currentDealDisplay">
+          <div class="prospect-name" id="dispProspectName" style="display:none"></div>
+          <div class="prospect-desc" id="dispProspectDesc" style="display:none"></div>
+          <div class="placeholder-text" id="dispProspectEmpty">No prospect added yet — click Edit to add one.</div>
+        </div>
+        <!-- Past deal inputs (inline, always visible when mode=past) -->
+        <div class="past-deal-fields" id="pastDealFields">
+          <div>
+            <label for="pastDealName">Deal name</label>
+            <input type="text" id="pastDealName" placeholder="e.g. Acme Carbon">
+          </div>
+          <div>
+            <label for="pastDealDesc">Deal description</label>
+            <textarea id="pastDealDesc" rows="3" placeholder="Briefly describe the company Bowen sold — products, customers, key capabilities..."></textarea>
+          </div>
+        </div>
       </div>
-      <button class="btn btn-ghost" onclick="openEditModal()">Edit prospect</button>
+      <button class="btn btn-ghost" id="editProspectBtn" onclick="openEditModal()">Edit prospect</button>
     </div>
   </div>
 
@@ -624,9 +685,33 @@
   let listName = '';
 
   let prospect = { name: '', desc: '' };
+  let outreachMode = 'current'; // 'current' | 'past'
 
   let results = {};
   let running = false;
+
+  function setMode(mode) {
+    outreachMode = mode;
+    document.getElementById('modeCurrentBtn').classList.toggle('active', mode === 'current');
+    document.getElementById('modePastBtn').classList.toggle('active', mode === 'past');
+    document.getElementById('currentDealDisplay').style.display = mode === 'current' ? '' : 'none';
+    document.getElementById('pastDealFields').classList.toggle('visible', mode === 'past');
+    document.getElementById('editProspectBtn').style.display = mode === 'current' ? '' : 'none';
+    document.getElementById('prospectLabel').textContent = mode === 'current'
+      ? 'Prospect (shown anonymously in outreach)'
+      : 'Past deal reference';
+  }
+
+  function getParagraphPayload(company, bullets) {
+    const base = { companyName: company.Name, companyDesc: company['Description [Organization]'], bullets, mode: outreachMode };
+    if (outreachMode === 'past') {
+      const dealName = document.getElementById('pastDealName').value.trim();
+      const dealDesc = document.getElementById('pastDealDesc').value.trim();
+      if (!dealName || !dealDesc) throw new Error('Enter a deal name and description for past deal mode.');
+      return { ...base, dealName, dealDesc };
+    }
+    return { ...base, prospectName: prospect.name, prospectDesc: prospect.desc };
+  }
 
   // API key validation
   const apiKeyInput = document.getElementById('apiKeyInput');
@@ -916,6 +1001,8 @@
     if (running) return;
     const apiKey = getApiKey();
     if (!apiKey) { showToast('Enter your Anthropic API key first.'); apiKeyInput.focus(); return; }
+    if (outreachMode === 'current' && (!prospect.name || !prospect.desc)) { showToast('Add a prospect before generating outreach copy.'); return; }
+    if (outreachMode === 'past' && (!document.getElementById('pastDealName').value.trim() || !document.getElementById('pastDealDesc').value.trim())) { showToast('Enter a deal name and description for past deal mode.'); return; }
     const toRun = companies.filter(c => results[c.Name]?.status === 'done' && !results[c.Name]?.paragraph);
     if (!toRun.length) { showToast('No companies with linkages ready for outreach copy.'); return; }
 
@@ -934,16 +1021,11 @@
         results[company.Name] = { ...results[company.Name], paragraphLoading: true };
         renderTable();
         try {
+          const payload = getParagraphPayload(company, results[company.Name].bullets);
           const res = await fetch('/api/paragraph', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-            body: JSON.stringify({
-              prospectName: prospect.name,
-              prospectDesc: prospect.desc,
-              companyName: company.Name,
-              companyDesc: company['Description [Organization]'],
-              bullets: results[company.Name].bullets
-            })
+            body: JSON.stringify(payload)
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -976,16 +1058,11 @@
     results[name] = { ...r, paragraphLoading: true, paragraph: null };
     renderTable();
     try {
+      const payload = getParagraphPayload(company, r.bullets);
       const res = await fetch('/api/paragraph', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey() },
-        body: JSON.stringify({
-          prospectName: prospect.name,
-          prospectDesc: prospect.desc,
-          companyName: company.Name,
-          companyDesc: company['Description [Organization]'],
-          bullets: r.bullets
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
